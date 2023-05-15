@@ -41,6 +41,15 @@ public class Joueur {
         placerPieces();
     }
 
+    public void showPlateau() {
+        for(int i = 0 ; i < 10 ; i++) {
+            for(int j = 0 ; j < 10 ; j++) {
+                System.out.print(plateau[i][j] + "  ");
+            }
+            System.out.print("\n");
+        }
+    }
+
     public boolean checkAPerdu() {
         for(Piece p : pieces) {
             if(!p.isCoule()) return false;
@@ -106,5 +115,6 @@ public class Joueur {
             x = -1; y = -1 ; orientation = -1;
             System.out.println("Vous avez placé votre pièce " + p.toString() ) ;
         }
+        showPlateau();
     }
 }
