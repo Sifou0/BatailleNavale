@@ -26,12 +26,13 @@ public class Jeu {
         Scanner sc = new Scanner(System.in);
         while (j.isGameRunning()) {
             for(int i = 0 ; i < 2 ; i++) {
-                System.out.println("C'est au tour de " + j.getJoueurs()[(i == 0 ? 1 : 0)].getName() );
+                System.out.println("C'est au tour de " + j.getJoueurs()[i].getName() );
                 System.out.println("Position X à attaquer:");
                 x = sc.nextInt();
                 System.out.println("Position Y à attaquer:");
                 y = sc.nextInt();
-                j.getJoueurs()[(i == 0 ? 1 : 0)].checkIfHit(x,y);
+                j.getJoueurs()[i].setPlateauAdverse(j.getJoueurs()[(i == 0 ? 0 : 1)].checkIfHit(x,y,j.getJoueurs()[i].getPlateauAdverse()));
+                j.getJoueurs()[(i == 0 ? 1 : 0)].showPlateau();
             }
         }
     }

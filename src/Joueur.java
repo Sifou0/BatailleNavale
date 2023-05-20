@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class Joueur {
@@ -12,8 +13,6 @@ public class Joueur {
         return name;
     }
 
-
-
     private Piece[] pieces;
     private String name;
     private boolean aPerdu;
@@ -21,16 +20,19 @@ public class Joueur {
         return pieces;
     }
 
-    private int[][] plateau; // 0 = case vide, 1 = piece place, 2 = case touché
+    private String[][] plateau; // 0 = case vide, 1 = piece place, 2 = case touché
+    private String[][] plateauAdverse;
 
     public Joueur(String name) {
         this.name = name;
         this.aPerdu = false;
         pieces = new Piece[5];
-        plateau = new int[10][10];
+        plateau = new String[10][10];
+        plateauAdverse = new String[10][10];
         for(int i = 0 ; i < plateau.length ; i++) {
             for(int j = 0 ; j < plateau.length ; j++) {
-                plateau[i][j] = 0;
+                plateau[i][j] = "˜";
+                plateauAdverse[i][j] = "˜";
             }
         }
         pieces[0] = new Piece(5);
@@ -42,9 +44,17 @@ public class Joueur {
     }
 
     public void showPlateau() {
+        System.out.println("Mon plateau :");
         for(int i = 0 ; i < 10 ; i++) {
             for(int j = 0 ; j < 10 ; j++) {
                 System.out.print(plateau[i][j] + "  ");
+            }
+            System.out.print("\n");
+        }
+        System.out.println("Plateau adverse deviné :");
+        for(int i = 0 ; i < 10 ; i++) {
+            for(int j = 0 ; j < 10 ; j++) {
+                System.out.print(plateauAdverse[i][j] + "  ");
             }
             System.out.print("\n");
         }
@@ -61,28 +71,52 @@ public class Joueur {
     void placerPieceSurPlateau(int x, int y, int orientation, int taille) {
         if(orientation == 0) {
             for(int i = 0; i < taille ; i++) {
-                plateau[x+i][y] = 1;
+                plateau[x+i][y] = "B";
             }
         }
         else if(orientation == 1) {
             for(int i = 0; i < taille ; i++) {
-                plateau[x][y+i] = 1;
+                plateau[x][y+i] = "B";
             }
         }
     }
 
-    void checkIfHit(int x, int y) {
-        if(plateau[x][y] == 1) {
-            plateau[x][y]++;
+    public String[][] getPlateauAdverse() {
+        return plateauAdverse;
+    }
+
+    public void setPlateauAdverse(String[][] plateauAdverse) {
+        this.plateauAdverse = plateauAdverse;
+    }
+
+    public String[][] checkIfHit(int x, int y, String[][] plateauAdverseIn) {
+        if(Objects.equals(plateau[x][y], "B")) {
+            plateau[x][y] = "T";
+            plateauAdverseIn[x][y] = "T";
             for(Piece p : pieces) {
                 for(int[] pos : p.getAllPos() ) {
                     if(pos[0] == x && pos[1] == y) {
                         p.addHit();
-                        return;
+                        if (p.isCoule()) {
+                            plateauAdverseIn = pieceCoule(p,plateauAdverseIn);
+                        }
                     }
                 }
             }
+
         }
+        else if(Objects.equals(plateau[x][y], "˜")) {
+            plateauAdverseIn[x][y] = "N";
+        }
+        return plateauAdverseIn;
+    }
+
+    public String[][] pieceCoule(Piece p, String[][] in) {
+        for(int[] pos : p.getAllPos()) {
+            plateau[pos[0]][pos[1]] = "C";
+            in[pos[0]][pos[1]] = "C";
+        }
+        return in;
     }
 
     boolean inBoard(int x, int y) {
@@ -103,7 +137,7 @@ public class Joueur {
                 y = sc.nextInt();
                 System.out.println("Orientation : 0 pour vertical et 1 pour horizontal");
                 orientation = sc.nextInt();
-                if(plateau[x][y] == 0 && ((orientation == 0 && y+ p.getTaille() < 10) || (orientation == 1 && x+ p.getTaille() < 10))){
+                if(Objects.equals(plateau[x][y], "˜") && ((orientation == 0 && y+ p.getTaille() < 10) || (orientation == 1 && x+ p.getTaille() < 10))){
                     placerPieceSurPlateau(x,y,orientation,p.getTaille());
                 }
                 else {
@@ -111,9 +145,10 @@ public class Joueur {
                     x = -1; y = -1 ; orientation = -1;
                 }
             }
-            p.setOrientation(orientation); p.setPosX(x); p.setPosY(y);
+            p.setAll(x,y,orientation);
             x = -1; y = -1 ; orientation = -1;
             System.out.println("Vous avez placé votre pièce " + p.toString() ) ;
+
         }
         showPlateau();
     }

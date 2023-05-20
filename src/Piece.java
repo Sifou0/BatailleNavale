@@ -42,9 +42,6 @@ public class Piece {
         this.posY = posY;
     }
 
-    public int isOrientation() {
-        return orientation;
-    }
 
     public void setOrientation(int orientation) {
         this.orientation = orientation;
@@ -62,10 +59,8 @@ public class Piece {
 
     public void addHit() {
         nbOfHit++;
-        if(nbOfHit == taille) {
-            coule = true;
-            System.out.println("Le bateau : " + this.toString()  + " a coulé !");
-        }
+        coule = nbOfHit >= taille;
+        System.out.println("Le bateau : " + this.toString()  + " a coulé !");
     }
 
 
