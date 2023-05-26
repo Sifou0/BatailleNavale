@@ -38,14 +38,10 @@ public class ClientHandler implements Runnable {
     private void broadcastATousLesUsers(String msg) throws IOException {
         int i = allClients.indexOf(this);
         if(i%2 == 0) {
-            allClients.get(i).output.println(msg);
-            allClients.get(i).output.flush();
             allClients.get(i+1).output.println(msg);
             allClients.get(i+1).output.flush();
         }
         else {
-            allClients.get(i).output.println(msg);
-            allClients.get(i).output.flush();
             allClients.get(i-1).output.println(msg);
             allClients.get(i-1).output.flush();
         }
