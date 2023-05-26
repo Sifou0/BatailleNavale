@@ -60,7 +60,6 @@ public class Piece {
     public void addHit() {
         nbOfHit++;
         coule = nbOfHit >= taille;
-        System.out.println("Le bateau : " + this.toString()  + " a coulé !");
     }
 
 

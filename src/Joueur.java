@@ -1,3 +1,8 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
@@ -9,21 +14,28 @@ public class Joueur {
 //    2 Contre-torpilleurs (3 cases)
 //    1 Torpilleur (2 cases)
 
-    public String getName() {
-        return name;
-    }
 
+    private Socket clientSocket;
+    private BufferedReader input;
+    private PrintWriter output;
     private Piece[] pieces;
     private String name;
     private boolean aPerdu;
-    public Piece[] getPieces() {
-        return pieces;
-    }
+
+
 
     private String[][] plateau; // 0 = case vide, 1 = piece place, 2 = case touché
     private String[][] plateauAdverse;
 
-    public Joueur(String name) {
+    public Joueur(Socket clientSocket, String name) {
+        try {
+            this.clientSocket = clientSocket;
+            this.output = new PrintWriter(clientSocket.getOutputStream());
+            this.input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            this.name = name;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.name = name;
         this.aPerdu = false;
         pieces = new Piece[5];
@@ -85,30 +97,49 @@ public class Joueur {
         return plateauAdverse;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public Piece[] getPieces() {
+        return pieces;
+    }
+
     public void setPlateauAdverse(String[][] plateauAdverse) {
         this.plateauAdverse = plateauAdverse;
     }
 
-    public String[][] checkIfHit(int x, int y, String[][] plateauAdverseIn) {
+    public String checkIfHit(int x, int y) {
         if(Objects.equals(plateau[x][y], "B")) {
             plateau[x][y] = "T";
-            plateauAdverseIn[x][y] = "T";
             for(Piece p : pieces) {
                 for(int[] pos : p.getAllPos() ) {
                     if(pos[0] == x && pos[1] == y) {
                         p.addHit();
                         if (p.isCoule()) {
-                            plateauAdverseIn = pieceCoule(p,plateauAdverseIn);
+                            return "COULE " + x + " " + y;
                         }
+                        else return "TOUCHE " + x + " " + y;
                     }
                 }
             }
+        }
+        return "RIEN " + x + " " + y;
+    }
 
+    void retourAdverse(String msg) {
+        String[] retour = msg.split(" ");
+        switch (retour[0]) {
+            case "TOUCHE":
+                plateauAdverse[Integer.parseInt(retour[1])][Integer.parseInt(retour[2])] = "T";
+                break;
+            case "COULE":
+                plateauAdverse[Integer.parseInt(retour[1])][Integer.parseInt(retour[2])] = "C";
+                break;
+            case "RIEN":
+                plateauAdverse[Integer.parseInt(retour[1])][Integer.parseInt(retour[2])] = "N";
+                break;
         }
-        else if(Objects.equals(plateau[x][y], "˜")) {
-            plateauAdverseIn[x][y] = "N";
-        }
-        return plateauAdverseIn;
     }
 
     public String[][] pieceCoule(Piece p, String[][] in) {
@@ -151,5 +182,69 @@ public class Joueur {
 
         }
         showPlateau();
+    }
+
+    int[] getInput(String input) {
+        String[] s = input.split(" ");
+        return new int[]{Integer.parseInt(s[0]),Integer.parseInt(s[1])};
+    }
+
+    Thread envoyer = new Thread(new Runnable() {
+        String msg;
+        Scanner sc = new Scanner(System.in);
+        @Override
+        public void run() {
+//            output.println("Vous jouez contre " + name);
+//            output.flush();
+            while(true){
+                msg = sc.nextLine();
+                output.println(msg);
+                output.flush();
+            }
+        }
+    });
+
+
+    Thread recevoir = new Thread(new Runnable() {
+        String msg;
+        @Override
+        public void run() {
+            try {
+                msg = input.readLine();
+                while(msg != null){
+                    System.out.println(msg);
+                    msg = input.readLine();
+                    if(msg.startsWith("TOUCHE") || msg.startsWith("COULE") || msg.startsWith("RIEN")) {
+                        retourAdverse(msg);
+
+                    }
+                    else {
+                        int[] curr = getInput(msg);
+                        output.println(checkIfHit(curr[0],curr[1]));
+                        output.flush();
+                    }
+                    showPlateau();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    });
+
+    public static void main(String[] args) {
+        try {
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Entrez un pseudo :");
+            String name = scanner.nextLine();
+            Socket socket = new Socket("localhost",5555);
+            System.out.println(socket);
+            Joueur joueur = new Joueur(socket,name);
+            joueur.recevoir.start();
+            joueur.envoyer.start();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }

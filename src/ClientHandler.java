@@ -1,38 +1,61 @@
 import java.io.*;
 import java.net.Socket;
-import java.util.HashMap;
+import java.util.ArrayList;
 
-public class Serveur extends Thread {
 
+public class ClientHandler implements Runnable {
+
+    public static ArrayList<ClientHandler> allClients = new ArrayList<>();
     private Socket clientSocket;
-    private String name;
-    private HashMap<String,Socket> allClients;
-    private InputStream input;
-    private OutputStream output;
+    private BufferedReader input;
+    private PrintWriter output;
 
-    public Serveur(Socket clientSocket, String name, HashMap<String,Socket> allClients) {
-        this.clientSocket = clientSocket;
-        this.name = name;
-        this.allClients = allClients;
+    public ClientHandler(Socket clientSocket) {
         try {
-            input = clientSocket.getInputStream();
-            output = clientSocket.getOutputStream();
+            this.clientSocket = clientSocket;
+            this.output = new PrintWriter(clientSocket.getOutputStream());
+            this.input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            allClients.add(this);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
     @Override
     public void run() {
-        try {
-            BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            while (true) {
-                String out = input.readLine();
-
+        String msg;
+        while (true) {
+            try {
+                msg = input.readLine();
+                broadcastATousLesUsers(msg);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
+
+    private void broadcastATousLesUsers(String msg) throws IOException {
+        int i = allClients.indexOf(this);
+        if(i%2 == 0) {
+            allClients.get(i).output.println(msg);
+            allClients.get(i).output.flush();
+            allClients.get(i+1).output.println(msg);
+            allClients.get(i+1).output.flush();
+        }
+        else {
+            allClients.get(i).output.println(msg);
+            allClients.get(i).output.flush();
+            allClients.get(i-1).output.println(msg);
+            allClients.get(i-1).output.flush();
+        }
+//        for (ClientHandler client : allClients) {
+//            if (!client.clientSocket.equals(this.clientSocket)){
+//                client.output.println(msg);
+//                client.output.flush();
+//            }
+//        }
+    }
+
 
 }
